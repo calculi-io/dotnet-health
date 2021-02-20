@@ -1,0 +1,335 @@
+{
+	"metadata": {
+		"version": 1
+	},
+	"application": {
+		"name": "Health",
+		"language": "DOTNET",
+		"artifact_store": {
+			"type": "s3",
+			"repositories": [
+				{
+					"category": "rc-packaging",
+					"bucket": "guide-rails-calculi-rc"
+				},
+				{
+					"category": "final-packaging",
+					"bucket": "guide-rails-calculi-final"
+				},
+				{
+					"category": "logs",
+					"bucket": "guide-rails-calculi-logs"
+				}
+			]
+		}
+	},
+	"pipeline": {
+		"segments": [
+			{
+				"name": "Build",
+				"segment_type": "build",
+				"job_steps": [
+					{
+						"name": "Build",
+						"definition": "Build",
+						"command": ".\\test.ps1",
+						"properties": null
+					},
+					{
+						"name": "Package",
+						"definition": "Package",
+						"command": ".\\package.ps1",
+						"properties": null
+					}
+				],
+				"exit_actions": {
+					"default": {
+						"fetch_logs": true,
+						"notifications": [],
+						"code_analysis": {
+							"publish": true,
+							"properties": null
+						},
+						"delete_instances": true
+					}
+				},
+				"properties": [
+					{
+						"name": "source_dirs",
+						"value": "local-sonar-project.properties"
+					}
+				],
+				"deployment_strategy": {
+					"canary_watch_time": "",
+					"update_watch_time": "",
+					"serial": false
+				},
+				"application_init": {
+					"command": "",
+					"arguments": null
+				},
+				"packages": [
+					{
+						"name": "((application.name))",
+						"dependencies": [],
+						"downloads": [],
+						"files": [
+							"((application.name)).zip"
+						],
+						"package_install_command": "",
+						"installed_path": ""
+					}
+				],
+				"instance_tags": [
+					{
+						"name": "application.name",
+						"value": "((application.name))"
+					}
+				],
+				"post_deployment_actions": {
+					"instances": null,
+					"loadbalanced": false,
+					"loadbalancer": {
+						"TargetGroupName": "",
+						"TargetGroupPort": 0,
+						"TargetGroupProtocol": "",
+						"TargetType": "",
+						"VPCID": "",
+						"HealthCheckEnabled": false,
+						"HealthCheckPort": "",
+						"UnhealthyThresholdCount": 0
+					}
+				},
+				"cache_info": {}
+			},
+			{
+				"name": "Production",
+				"segment_type": "production",
+				"run_after": [
+					"Build"
+				],
+				"exit_actions": {
+					"default": {
+						"fetch_logs": true,
+						"notifications": [],
+						"code_analysis": {
+							"publish": false,
+							"properties": null
+						},
+						"delete_instances": false
+					}
+				},
+				"deployment_files": [
+					{
+						"source_path": "ci/deploy.ps1",
+						"target_path": "ci/deploy.ps1"
+					}
+				],
+				"deployment_strategy": {
+					"canaries": 1,
+					"max_in_flight": 1,
+					"canary_watch_time": "30000-90000",
+					"update_watch_time": "30000-90000",
+					"serial": false
+				},
+				"application_init": {
+					"command": "",
+					"arguments": null
+				},
+				"process": {
+					"init": {
+						"command": ""
+					}
+				},
+				"package_dependencies": [
+					"((application.name))"
+				],
+				"instance_tags": [
+					{
+						"name": "application.name",
+						"value": "((application.name))"
+					}
+				],
+				"instance_groups": [
+					{
+						"name": "((application.name))",
+						"number_of_instances": 1,
+						"persistent_disk_type": "",
+						"vm_type": "default",
+						"os_type": "default",
+						"networks": [
+							"((deploy.target.network.production))"
+						],
+						"availability_zones": [
+							"((deploy.target.zone.production))"
+						],
+						"deployment_strategy": {},
+						"dependencies": [
+							{
+								"name": "consul-windows",
+								"release": "consul-windows",
+								"provides": [
+									{
+										"name": "consul_servers.as",
+										"value": "consul_1"
+									}
+								],
+								"consumes": [
+									{
+										"name": "consul_servers.from",
+										"value": "consul_1"
+									}
+								],
+								"properties": [
+									{
+										"name": "consul.servicename",
+										"value": "((consul.servicename))"
+									},
+									{
+										"name": "consul.environment",
+										"value": "((consul.environment))"
+									},
+									{
+										"name": "consul.datacenter",
+										"value": "((consul.datacenter))"
+									},
+									{
+										"name": "consul.server",
+										"value": "false"
+									},
+									{
+										"name": "consul.joinservers",
+										"value": "((consul.joinservers))"
+									},
+									{
+										"name": "calculi.intermediate.cert",
+										"value": "grsecret:tls.cert"
+									},
+									{
+										"name": "calculi.intermediate.key",
+										"value": "grsecret:tls.key"
+									}
+								]
+							},
+							{
+								"name": "enable_rdp",
+								"release": "windows-utilities",
+								"properties": []
+							},
+							{
+								"name": "set_password",
+								"release": "windows-utilities",
+								"properties": [
+									{
+										"name": "set_password.password",
+										"value": "Int3g2019!"
+									}
+								]
+							}
+						]
+					}
+				],
+				"post_deployment_actions": {
+					"instances": null,
+					"loadbalanced": false,
+					"loadbalancer": {
+						"TargetGroupName": "",
+						"TargetGroupPort": 0,
+						"TargetGroupProtocol": "",
+						"TargetType": "",
+						"VPCID": "",
+						"HealthCheckEnabled": false,
+						"HealthCheckPort": "",
+						"UnhealthyThresholdCount": 0
+					}
+				}
+			}
+		],
+		"exit_actions": {
+			"default": {
+				"fetch_logs": true,
+				"notifications": [],
+				"code_analysis": {
+					"publish": true,
+					"properties": null
+				},
+				"delete_instances": false
+			}
+		},
+		"default_properties": [
+			{
+				"name": "health.url",
+				"description": "URL to use for health monitoring",
+				"value": "https://calculi.calculi.io/login",
+				"type": "string"
+			},
+			{
+				"name": "health.interval",
+				"description": "interval between health checks in seconds",
+				"value": 30,
+				"type": "number"
+			},
+			{
+				"name": "health.graceperiod",
+				"description": "ignore failures for this amount of time",
+				"value": 0,
+				"type": "number"
+			},
+			{
+				"name": "health.timeout",
+				"description": "timeout for page response",
+				"value": 0,
+				"type": "number"
+			},
+			{
+				"name": "health.nostart",
+				"description": "do not try to start the health check",
+				"value": false,
+				"type": "boolean"
+			},
+			{
+				"name": "additional_properties_file",
+				"value": "local-sonar-project.properties",
+				"type": "string"
+			}
+		],
+		"deployment_files": [
+			{
+				"source_path": "ci/deploy.ps1",
+				"target_path": "ci/deploy.ps1"
+			},
+			{
+				"source_path": "ci/stop.ps1",
+				"target_path": "ci/stop.ps1"
+			}
+		],
+		"application_init": {
+			"command": "",
+			"arguments": null
+		},
+		"process": {
+			"init": {
+				"command": "ci/deploy.ps1"
+			},
+			"stop": {
+				"command": [
+					"ci/stop.ps1"
+				]
+			},
+			"name": "health"
+		},
+		"releases": [
+			{
+				"name": "consul-windows",
+				"version": "latest"
+			},
+			{
+				"name": "windows-utilities",
+				"version": "latest"
+			}
+		]
+	},
+	"organization": {
+		"orgname": "Tutorial"
+	}
+}

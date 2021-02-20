@@ -1,0 +1,12 @@
+.git/
+.nuget/
+.sonarqube/
+.vs/
+bin/
+obj/
+packages/
+report/
+TestResults/
+coverage.xml
+Health.zip
+tests.xml
